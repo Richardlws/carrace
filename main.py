@@ -7,6 +7,7 @@ GRASS = scale_image(pygame.image.load("imgs/grass.jpg"), 2.5)
 TRACK = scale_image(pygame.image.load("imgs/track.png"), 0.9)
 
 TRACK_BORDER = scale_image(pygame.image.load("imgs/track-border.png"), 0.9)
+TRACK_BORDER_MASK = pygame.mask.from_surface(TRACK_BORDER)
 FINISH = pygame.image.load("imgs/finish.png")
 
 RED_CAR = scale_image(pygame.image.load("imgs/red-car.png"), 0.55)
@@ -54,6 +55,12 @@ class AbstractCar:
 
         self.y -= vertical
         self.x -= horizontal
+
+    def collide(self, mask, x=0, y=0):                  #碰撞监测
+        car_mask = pygame.mask.from_surface(self.img)   #获取车辆的遮罩
+        offset = (int(self.x - x), int(self.y - y))     #计算两个遮罩的相对位移
+        poi = mask.overlap(car_mask, offset)            #检测是否有重叠
+
 
     def reduce_speed(self):
         self.vel = max(self.vel - self.acceleration / 2, 0)
