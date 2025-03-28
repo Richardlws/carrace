@@ -97,6 +97,10 @@ class ComputerCar(AbstractCar):
         for point in self.path:
             pygame.draw.circle(win, (255, 0, 0), point, 5)
 
+    def draw(self, win):
+        super().draw(win)
+        self.draw_points(win)
+
 
 def draw(win, images, player_car, computer_car):
     for img, pos in images:
@@ -145,6 +149,9 @@ while run:
         if event.type == pygame.QUIT:
             run = False
             break
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            pos = pygame.mouse.get_pos()
+            computer_car.path.append(pos)
 
     move_layer(player_car)
 
@@ -157,5 +164,7 @@ while run:
             player_car.bounce()
         else:
             player_car.reset()
+
+print(computer_car.path)
 
 pygame.quit()
