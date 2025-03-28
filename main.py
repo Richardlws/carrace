@@ -60,10 +60,14 @@ class AbstractCar:
         car_mask = pygame.mask.from_surface(self.img)   #获取车辆的遮罩
         offset = (int(self.x - x), int(self.y - y))     #计算两个遮罩的相对位移
         poi = mask.overlap(car_mask, offset)            #检测是否有重叠
-
+        return poi
 
     def reduce_speed(self):
         self.vel = max(self.vel - self.acceleration / 2, 0)
+        self.move()
+
+    def bounce(self):
+        self.vel = -self.vel
         self.move()
 
 class PlayerCar(AbstractCar):
@@ -116,6 +120,10 @@ while run:
             break
 
     move_layer(player_car)
+
+    if player_car.collide(TRACK_BORDER_MASK) != None:
+        player_car.bounce()
+
 
 
 pygame.quit()
