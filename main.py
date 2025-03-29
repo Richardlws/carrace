@@ -183,7 +183,6 @@ class ComputerCar(AbstractCar):
 
 
 def draw(win, images, player_car, computer_car, game_info):
-
     for img, pos in images:
         win.blit(img, pos)
 
@@ -227,7 +226,9 @@ def handle_collision(player_car, computer_car, game_info):
     computer_finish_poi_collide = computer_car.collide(FINISH_MASK, *FINISH_POSITION)  # 句中"*"是为了拆分FINISH_POSITION这个元组。
     if computer_finish_poi_collide != None:
         blit_text_center(WIN, MAIN_FONT, "You lost!")
+        pygame.display.update()
         pygame.time.wait(5000)
+
         game_info.reset()
         player_car.reset()
         computer_car.reset()
@@ -241,12 +242,13 @@ def handle_collision(player_car, computer_car, game_info):
             player_car.reset()
             computer_car.next_level(game_info.level)
 
+
 run = True
 clock = pygame.time.Clock()
 images = [(GRASS, (0, 0)), (TRACK, (0, 0)),
           (FINISH, FINISH_POSITION), (TRACK_BORDER, (0, 0))]
 player_car = PlayerCar(4, 4)
-computer_car = ComputerCar(4, 4, PATH)
+computer_car = ComputerCar(1, 4, PATH)
 game_info = GameInfo()
 
 while run:
@@ -280,8 +282,16 @@ while run:
     move_layer(player_car)
     computer_car.move()
 
-    handle_collision(player_car, computer_car,game_info)
+    handle_collision(player_car, computer_car, game_info)
 
-# print(computer_car.path)
+    if game_info.game_finished():
+        blit_text_center(WIN, MAIN_FONT, "You won the game")
+        pygame.display.update()
+        pygame.time.wait(5000)
+        game_info.reset()
+        player_car.reset()
+        computer_car.reset()
+
+        # print(computer_car.path)
 
 pygame.quit()
