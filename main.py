@@ -20,6 +20,11 @@ WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Racing Game!")
 
 FPS = 60
+PATH = [(158, 176), (152, 124), (137, 78), (86, 87), (54, 159), (52, 292), (58, 409), (80, 501), (159, 577), (255, 669),
+        (343, 717), (406, 636), (430, 522), (513, 489), (588, 587), (609, 693), (700, 730), (738, 638), (728, 491),
+        (708, 377), (587, 361), (464, 359), (399, 324), (428, 258), (531, 259), (679, 253), (729, 228), (729, 151),
+        (712, 78), (550, 66), (400, 66), (291, 97), (280, 236), (271, 371), (206, 409), (177, 347), (176, 274)]
+
 
 class AbstractCar:
     IMG = RED_CAR
@@ -47,7 +52,7 @@ class AbstractCar:
         self.move()
 
     def move_backward(self):
-        self.vel = max(self.vel - self.acceleration, -self.max_vel/2)
+        self.vel = max(self.vel - self.acceleration, -self.max_vel / 2)
         self.move()
 
     def move(self):
@@ -58,17 +63,16 @@ class AbstractCar:
         self.y -= vertical
         self.x -= horizontal
 
-    def collide(self, mask, x=0, y=0):                  #碰撞监测
-        car_mask = pygame.mask.from_surface(self.img)   #获取车辆的遮罩
-        offset = (int(self.x - x), int(self.y - y))     #计算两个遮罩的相对位移
-        poi = mask.overlap(car_mask, offset)            #检测是否有重叠
+    def collide(self, mask, x=0, y=0):  # 碰撞监测
+        car_mask = pygame.mask.from_surface(self.img)  # 获取车辆的遮罩
+        offset = (int(self.x - x), int(self.y - y))  # 计算两个遮罩的相对位移
+        poi = mask.overlap(car_mask, offset)  # 检测是否有重叠
         return poi
 
     def reset(self):
         self.x, self.y = self.START_POS
         self.angle = 0
         self.vel = 0
-
 
 
 class PlayerCar(AbstractCar):
@@ -82,6 +86,7 @@ class PlayerCar(AbstractCar):
     def bounce(self):
         self.vel = -self.vel
         self.move()
+
 
 class ComputerCar(AbstractCar):
     IMG = GREEN_CAR
@@ -101,6 +106,36 @@ class ComputerCar(AbstractCar):
         super().draw(win)
         self.draw_points(win)
 
+    def calculate_angle(self):#计算车辆旋转的角度
+        target_x, target_y = self.path[self.current_point]
+        x_diff = target_x - self.x
+        y_diff = target_y - self.y
+
+        if y_diff == 0:
+            desired_radian_angle = math.pi / 2
+        else:
+            desired_radian_angle = math.atan(x_diff / y_diff)
+
+        if target_y > self.y:
+            desired_radian_angle += math.pi
+
+        difference_in_angle = self.angle - math.degrees(desired_radian_angle)
+        if difference_in_angle >= 180:
+            difference_in_angle -= 360
+
+        if difference_in_angle > 0:
+            self.angle -= min(self.rotation_vel, abs(difference_in_angle))
+        else:
+            self.angle += min(self.rotation_vel, abs(difference_in_angle))
+
+    def move(self):
+        if self.current_point >= len(self.path):
+            return
+
+        self.calculate_angle()
+        self.update_path_point()
+        super().move()
+
 
 def draw(win, images, player_car, computer_car):
     for img, pos in images:
@@ -109,6 +144,7 @@ def draw(win, images, player_car, computer_car):
     player_car.draw(win)
     computer_car.draw(win)
     pygame.display.update()
+
 
 def move_layer(player):
     keys = pygame.key.get_pressed()
@@ -134,31 +170,31 @@ clock = pygame.time.Clock()
 images = [(GRASS, (0, 0)), (TRACK, (0, 0)),
           (FINISH, FINISH_POSITION), (TRACK_BORDER, (0, 0))]
 player_car = PlayerCar(4, 4)
-computer_car = ComputerCar(4,4)
+computer_car = ComputerCar(4, 4, PATH)
 
 while run:
     clock.tick(FPS)
 
     draw(WIN, images, player_car, computer_car)
 
-    #WIN.blit(GRASS, (0, 0))
-    #WIN.blit(TRACK, (0, 0))
-    #WIN.blit(GREEN_CAR, (0, 0))
+    # WIN.blit(GRASS, (0, 0))
+    # WIN.blit(TRACK, (0, 0))
+    # WIN.blit(GREEN_CAR, (0, 0))
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
             break
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            pos = pygame.mouse.get_pos()
-            computer_car.path.append(pos)
+        # if event.type == pygame.MOUSEBUTTONDOWN:
+        #   pos = pygame.mouse.get_pos()
+        #   computer_car.path.append(pos)
 
     move_layer(player_car)
 
     if player_car.collide(TRACK_BORDER_MASK) != None:
         player_car.bounce()
 
-    finish_poi_collide = player_car.collide(FINISH_MASK, *FINISH_POSITION) #句中"*"是为了拆分FINISH_POSITION这个元组。
+    finish_poi_collide = player_car.collide(FINISH_MASK, *FINISH_POSITION)  # 句中"*"是为了拆分FINISH_POSITION这个元组。
     if finish_poi_collide != None:
         if finish_poi_collide[1] == 0:
             player_car.bounce()
