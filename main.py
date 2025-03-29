@@ -1,7 +1,8 @@
 import pygame
 import time
 import math
-from utils import scale_image, blit_rotate_center
+from utils import scale_image, blit_rotate_center, blit_text_center
+pygame.font.init()
 
 GRASS = scale_image(pygame.image.load("imgs/grass.jpg"), 2.5)
 TRACK = scale_image(pygame.image.load("imgs/track.png"), 0.9)
@@ -19,11 +20,42 @@ WIDTH, HEIGHT = TRACK.get_width(), TRACK.get_height()
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Racing Game!")
 
+MAIN_FONT = pygame.font.SysFont("comicsans", 44)
+
 FPS = 60
-PATH = [(158, 176), (152, 124), (137, 78), (86, 87), (54, 159), (52, 292), (58, 409), (80, 501), (159, 577), (255, 669),
-        (343, 717), (406, 636), (430, 522), (513, 489), (588, 587), (609, 693), (700, 730), (738, 638), (728, 491),
-        (708, 377), (587, 361), (464, 359), (399, 324), (428, 258), (531, 259), (679, 253), (729, 228), (729, 151),
-        (712, 78), (550, 66), (400, 66), (291, 97), (280, 236), (271, 371), (206, 409), (177, 347), (176, 274)]
+PATH = [(175, 119), (110, 70), (56, 133), (70, 481), (318, 731), (404, 680), (418, 521), (507, 475), (600, 551),
+        (613, 715), (736, 713),
+        (734, 399), (611, 357), (409, 343), (433, 257), (697, 258), (738, 123), (581, 71), (303, 78), (275, 377),
+        (176, 388), (178, 260)]
+
+class GameInfo:
+    LEVELS = 10
+
+    def __init__(self, level = 1):
+        self.level = level
+        self.started = False
+        self.level_start_time = 0
+
+    def next_level(self):
+        self.level += 1
+        self.started = False
+
+    def reset(self):
+        self.level = 1
+        self.started = False
+        self.level_start_time = 0
+
+    def game_finished(self):
+        return self.level > self.LEVELS
+
+    def start_level(self):
+        self.started = True
+        self.level_start_time = time.time()
+
+    def get_level_time(self):
+        if not self.started:
+            return 0
+        return self.level_start_time - time.time()
 
 
 class AbstractCar:
@@ -106,7 +138,7 @@ class ComputerCar(AbstractCar):
         super().draw(win)
         self.draw_points(win)
 
-    def calculate_angle(self):#计算车辆旋转的角度
+    def calculate_angle(self):  # 计算车辆旋转的角度
         target_x, target_y = self.path[self.current_point]
         x_diff = target_x - self.x
         y_diff = target_y - self.y
@@ -127,6 +159,12 @@ class ComputerCar(AbstractCar):
             self.angle -= min(self.rotation_vel, abs(difference_in_angle))
         else:
             self.angle += min(self.rotation_vel, abs(difference_in_angle))
+
+    def update_path_point(self):
+        target = self.path[self.current_point]
+        rect = pygame.Rect(self.x, self.y, self.img.get_width(), self.img.get_height())
+        if rect.collidepoint(*target):
+            self.current_point += 1
 
     def move(self):
         if self.current_point >= len(self.path):
@@ -164,6 +202,22 @@ def move_layer(player):
     if not moved:
         player_car.reduce_speed()
 
+def handle_collision(player_car, computer_car):
+    if player_car.collide(TRACK_BORDER_MASK) != None:
+        player_car.bounce()
+
+    computer_finish_poi_collide = computer_car.collide(FINISH_MASK, *FINISH_POSITION)  # 句中"*"是为了拆分FINISH_POSITION这个元组。
+    if computer_finish_poi_collide != None:
+        player_car.reset()
+        computer_car.reset()
+
+    player_finish_poi_collide = player_car.collide(FINISH_MASK, *FINISH_POSITION)  # 句中"*"是为了拆分FINISH_POSITION这个元组。
+    if player_finish_poi_collide != None:
+        if player_finish_poi_collide[1] == 0:
+            player_car.bounce()
+        else:
+            player_car.reset()
+            computer_car.reset()
 
 run = True
 clock = pygame.time.Clock()
@@ -171,11 +225,16 @@ images = [(GRASS, (0, 0)), (TRACK, (0, 0)),
           (FINISH, FINISH_POSITION), (TRACK_BORDER, (0, 0))]
 player_car = PlayerCar(4, 4)
 computer_car = ComputerCar(4, 4, PATH)
+game_info = GameInfo()
 
 while run:
     clock.tick(FPS)
 
     draw(WIN, images, player_car, computer_car)
+
+    while not game_info.started:
+        blit_text_center(WIN, MAIN_FONT, "Press any key to start level {game_info.level}!")
+        for event in pygame.event.get():
 
     # WIN.blit(GRASS, (0, 0))
     # WIN.blit(TRACK, (0, 0))
@@ -190,17 +249,12 @@ while run:
         #   computer_car.path.append(pos)
 
     move_layer(player_car)
+    computer_car.move()
 
-    if player_car.collide(TRACK_BORDER_MASK) != None:
-        player_car.bounce()
+    handle_collision(player_car, computer_car)
 
-    finish_poi_collide = player_car.collide(FINISH_MASK, *FINISH_POSITION)  # 句中"*"是为了拆分FINISH_POSITION这个元组。
-    if finish_poi_collide != None:
-        if finish_poi_collide[1] == 0:
-            player_car.bounce()
-        else:
-            player_car.reset()
 
-print(computer_car.path)
+
+#print(computer_car.path)
 
 pygame.quit()
